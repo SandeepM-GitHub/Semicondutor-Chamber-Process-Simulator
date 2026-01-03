@@ -51,6 +51,47 @@ subsystems and software control logic.
   Enum defining valid chamber states (`IDLE`, `PUMPING_DOWN`, `PROCESSING`, `VENTING`, `ERROR`).
 
 ---
+## System Architecture (UML)
+```mermaid
+classDiagram
+    direction LR
+
+    class Main {
+        +main(String[] args)
+    }
+
+    class ChamberController {
+        -State currentState
+        -SensorData sensors
+        +runCycle()
+    }
+
+    class SensorSimulator {
+        -SensorData sensors
+        +run()
+    }
+
+    class SensorData {
+        +AtomicInteger pressure
+        +AtomicInteger temperature
+    }
+
+    class State {
+        <<enum>>
+        IDLE
+        PUMPING_DOWN
+        PROCESSING
+        VENTING
+        ERROR
+    }
+
+    Main --> ChamberController
+    Main --> SensorSimulator
+    ChamberController --> SensorData
+    SensorSimulator --> SensorData
+    ChamberController --> State
+```
+---
 
 ## How It Works
 
@@ -63,6 +104,45 @@ subsystems and software control logic.
 All sensor updates occur asynchronously via a background thread.
 
 ---
+
+## Process Flow (Sequence Diagram)
+```mermaid
+sequenceDiagram
+    participant Main
+    participant Controller as ChamberController
+    participant Simulator as SensorSimulator
+    participant Sensors as SensorData
+
+    Main->>Simulator: start thread
+    Main->>Controller: runCycle()
+
+    Controller->>Sensors: read pressure
+    loop Pumping Down
+        Simulator->>Sensors: decrease pressure
+        Controller->>Sensors: check pressure
+    end
+
+    Controller->>Controller: PROCESSING
+    Controller->>Controller: VENTING
+    Controller->>Controller: IDLE
+```
+---
+
+## Finite State Machine (FSM)
+```mermaid
+stateDiagram-v2
+    [*] --> IDLE
+
+    IDLE --> PUMPING_DOWN : start cycle
+    PUMPING_DOWN --> PROCESSING : pressure <= threshold
+    PROCESSING --> VENTING : process complete
+    VENTING --> IDLE : vent complete
+
+    PUMPING_DOWN --> ERROR : timeout / fault
+    PROCESSING --> ERROR : exception
+```
+---
+
 ## How to Run
 
 Compile and run Main.java. The console will display interleaved logs from the 

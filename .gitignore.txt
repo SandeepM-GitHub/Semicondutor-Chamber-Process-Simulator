@@ -1,0 +1,10 @@
+# Java
+*.class
+out/
+bin/
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
